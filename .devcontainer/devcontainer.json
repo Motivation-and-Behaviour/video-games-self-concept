@@ -1,0 +1,26 @@
+{
+  "name": "your-project-name",
+  "image": "ghcr.io/tarensanders/r-base:latest",
+  "features": {
+    "ghcr.io/rocker-org/devcontainer-features/r-packages:1": {
+      "packages": "", // Specify any additional R packages you want to install, separated by commas
+      "installSystemRequirements": true
+    }
+  },
+  "mounts": [
+    "source=<path-to-your-data>,target=/data,type=bind", // Replace <path-to-your-data> with the actual path to your data directory on your host machine
+    "source=claude-code-config-${devcontainerId},target=/home/rstudio/.claude,type=volume" // This creates a named volume for the .claude directory to persist across container restarts
+  ],
+  "postCreateCommand": "sudo chown -R rstudio:rstudio /home/rstudio/.claude", // Ensures ownership of the .claude directory, allowing it to read and write configuration files without permission issues
+  "customizations": {
+    "vscode": {
+      "extensions": ["Posit.air-vscode", "REditorSupport.r"],
+      "settings": {
+        "[r]": {
+          "editor.defaultFormatter": "Posit.air-vscode",
+          "editor.formatOnSave": true
+        }
+      }
+    }
+  }
+}
