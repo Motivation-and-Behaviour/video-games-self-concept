@@ -1,0 +1,80 @@
+---
+title: "Video Games, Self-Concept, and the Parent–Child Relationship"
+subtitle: "Analysis report"
+author: "Taren Sanders"
+date: today
+# The docx is the reviewed artifact; the html is a quick-preview convenience
+# (first so the VS Code Quarto preview uses it). Both render in the pipeline.
+format:
+  html:
+    toc: true
+    number-sections: true
+    embed-resources: true
+  docx:
+    toc: true
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+library(targets)
+library(ggplot2)
+library(knitr)
+
+# Quarto renders from the document's directory, so point tar_read() at the
+# project-root store explicitly.
+store <- here::here("_targets")
+```
+
+# Methods
+
+- Data: LSAC B cohort at ages 10/11, 12/13, and 14/15 (waves 6–8). The K cohort is excluded because its age-14 wave (2012) did not have the video game time item.
+
+## Key Variables
+
+- Video game use: reported minutes of electronic games in an average week, converted to hours/week.
+- Self-concept: self-reported SDQ. The total difficulties score is the primary outcome, and internalising (emotional + peer) and externalising (conduct + hyperactivity) composites are for secondary analyses. The Parent 1-reported SDQ total is also kept for an informant-robustness check.
+- Parental warmth (the moderator): Parent 1's score on the 6-item Parental Warmth Scale (1–5). Parent 2's score is retained for a both-parents sensitivity model. It's not the primary model because so much of Parent 2's data is missing.
+- Covariates: sex, socioeconomic position, and age in months, all at the age 10/11 baseline.
+- Cleaning: LSAC missing-data codes recoded to missing. Video game hours more than 4 SD above the within-wave mean are winsorised (that is, set to the 4 SD value). That is different from the proposal (which said set to NA), but I think makes more sense. The flagged values look like real heavy gamers overstating, so we keep them but cap their influence. I'll also test setting them to missing as a sensitivity analysis. SES and warmth are not screened — there are only a few extreme SES values and these seem plausible given the size of LSAC, and low warmth scores are likely to be real given that these are likert scale items.
+
+# Data and derivations
+
+## Sample and missingness per wave
+
+```{r tbl-missingness}
+knitr::kable(
+  tar_read(missingness_table, store = store),
+  caption = "Non-missing observations (% of children in the wave file) for each study variable, after cleaning. N is the number of children with any data at that wave."
+)
+```
+
+## Distributions
+
+```{r plot-distributions, fig.cap="Distributions of the three core study variables at each age band (after cleaning).", fig.width=8, fig.height=7}
+tar_read(distributions_plot, store = store)
+```
+
+## Video game hours: outlier tail {#sec-vg-tail}
+
+Values more than 4 SD above the within-wave mean are winsorised to 4 SD from mean. The flagged values are shown below before windsorising.
+
+```{r tbl-vg-tail}
+knitr::kable(
+  tar_read(vg_tail_table, store = store),
+  caption = "Unscreened video game hours per week: within-wave summary and all values above the 4 SD flagging threshold."
+)
+```
+
+::: {.callout-note title="Checkpoint decisions (Step 1)"}
+- Do the derivations (hours/week conversion, SDQ composites, within-wave
+  z-scores) look right?
+- Decided 2026-07-27: flagged video game hours are winsorised to the 4 SD
+  threshold (set-to-missing kept as a sensitivity analysis); SES and
+  warmth are not outlier-screened.
+- Inclusion criterion flagged for the Step 2 checkpoint: FIML under MAR
+  (recommended) vs the proposal's complete-case criterion.
+:::

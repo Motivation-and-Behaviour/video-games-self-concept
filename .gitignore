@@ -48,6 +48,10 @@ doc/*.log
 doc/*.ttt
 doc/*.tex
 
+# HTML preview of the report (the docx is the reviewed artifact)
+doc/report.html
+doc/report_files/
+
 # Others
 .DS_Store
 .vscode
