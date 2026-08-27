@@ -33,13 +33,21 @@ clpm_syntax <- function(
   y = "sdq",
   waves = c(10, 12, 14),
   covariates = c("female", "ses_z_10"),
-  constrain = c("cross", "all", "none")
+  constrain = c("cross", "all", "none"),
+  n_groups = 1,
+  cross_equal_across_groups = FALSE
 ) {
   constrain <- match.arg(constrain)
   xv <- paste0(x, "_", waves)
   yv <- paste0(y, "_", waves)
 
-  lagged <- lagged_block(xv, yv, constrain)
+  lagged <- lagged_block(
+    xv,
+    yv,
+    constrain,
+    n_groups,
+    cross_equal_across_groups
+  )
 
   # Within-wave association: covariance at wave 1, residual covariance after.
   cov_within <- paste0(xv, " ~~ ", yv)
@@ -70,7 +78,9 @@ riclpm_syntax <- function(
   waves = c(10, 12, 14),
   covariates = character(0),
   constrain = c("cross", "all", "none"),
-  covariates_on = c("between", "within")
+  covariates_on = c("between", "within"),
+  n_groups = 1,
+  cross_equal_across_groups = FALSE
 ) {
   constrain <- match.arg(constrain)
   covariates_on <- match.arg(covariates_on)
@@ -97,7 +107,13 @@ riclpm_syntax <- function(
     sep = "\n"
   )
 
-  lagged <- lagged_block(wx, wy, constrain)
+  lagged <- lagged_block(
+    wx,
+    wy,
+    constrain,
+    n_groups,
+    cross_equal_across_groups
+  )
   cov_within <- paste0(wx, " ~~ ", wy)
 
   # The random intercepts must be orthogonal to the wave-1 within-person
@@ -148,11 +164,26 @@ riclpm_syntax <- function(
 
 #' Autoregressive and cross-lagged path syntax
 #'
+#' In a multi-group model a bare label constrains a parameter to be equal
+#' across groups, while `c(lab_g1, lab_g2)` lets it differ. The moderation
+#' test needs the cross-lags equal across groups in one model and free in the
+#' other, with everything else — including the autoregressions — free in both,
+#' so that the chi-square difference isolates the cross-lags.
+#'
 #' @param xs,ys Variable names for the two panel variables, in wave order.
 #' @param constrain Which lagged paths to hold equal across lags.
+#' @param n_groups Number of groups; 1 for a single-group model.
+#' @param cross_equal_across_groups Constrain the cross-lags equal across
+#'   groups? Ignored when `n_groups` is 1.
 #' @return lavaan syntax for the lagged structure.
 #' @noRd
-lagged_block <- function(xs, ys, constrain) {
+lagged_block <- function(
+  xs,
+  ys,
+  constrain,
+  n_groups = 1,
+  cross_equal_across_groups = FALSE
+) {
   lags <- seq_len(length(xs) - 1)
   # A constrained path drops its lag suffix, so both lags share one label.
   lab <- function(base, i) {
@@ -162,7 +193,15 @@ lagged_block <- function(xs, ys, constrain) {
       none = TRUE,
       cross = startsWith(base, "ar_")
     )
-    paste0(base, if (free) i else "")
+    nm <- paste0(base, if (free) i else "")
+    if (n_groups == 1) {
+      return(nm)
+    }
+    if (startsWith(base, "cl_") && cross_equal_across_groups) {
+      nm
+    } else {
+      paste0("c(", paste0(nm, "_g", seq_len(n_groups), collapse = ", "), ")")
+    }
   }
 
   paths <- vapply(

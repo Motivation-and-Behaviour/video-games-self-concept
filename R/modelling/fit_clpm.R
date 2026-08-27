@@ -22,6 +22,10 @@
 #'   across models fitted to the same set of variables).
 #' @param constrain Which lagged paths are held equal across lags: "cross",
 #'   "all", or "none".
+#' @param group Optional grouping column for a multi-group model (Step 4
+#'   moderation). Rows with a missing group are dropped.
+#' @param cross_equal_across_groups Constrain the cross-lags equal across
+#'   groups. The moderation test compares this against the free version.
 #' @return A fitted `lavaan` object.
 #' @author Taren Sanders
 #' @export
@@ -31,14 +35,23 @@ fit_clpm <- function(
   y = "sdq",
   waves = c(10, 12, 14),
   covariates = c("female", "ses_z_10"),
-  constrain = c("cross", "all", "none")
+  constrain = c("cross", "all", "none"),
+  group = NULL,
+  cross_equal_across_groups = FALSE
 ) {
+  dat <- prep_sem_data(
+    df_model,
+    modelled = c(paste0(x, "_", waves), paste0(y, "_", waves)),
+    group = group
+  )
   syntax <- clpm_syntax(
     x = x,
     y = y,
     waves = waves,
     covariates = covariates,
-    constrain = match.arg(constrain)
+    constrain = match.arg(constrain),
+    n_groups = n_model_groups(dat, group),
+    cross_equal_across_groups = cross_equal_across_groups
   )
-  fit_panel_model(syntax, df_model, x, y, waves)
+  fit_panel_model(syntax, dat, group)
 }

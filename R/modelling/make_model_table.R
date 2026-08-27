@@ -110,6 +110,13 @@ age_band_labels <- function(waves) {
   paste0(waves, "/", waves + 1)
 }
 
+#' Label for a given lag, e.g. "10/11 → 12/13" for lag 1
+#' @noRd
+lag_label <- function(lag, waves = c(10, 12, 14)) {
+  bands <- age_band_labels(waves)
+  paste(bands[-length(bands)], "→", bands[-1])[lag]
+}
+
 #' Within-person component names for a prefix, if the model has them
 #'
 #' Falls back to the observed variable names for the CLPM, which has no

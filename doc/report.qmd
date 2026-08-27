@@ -352,7 +352,102 @@ tar_read(clpm_path_diagram, store = store)
 - Reporting the CLPM alone would have produced a materially different — and I think wrong — conclusion.
 :::
 
+# Moderation by parental warmth (H2)
+
+## What the test does
+
+- H2 is that a warmer parent–child relationship weakens the cross-lagged associations — that gaming would matter less for children who feel closer to their parents.
+- The main test splits children into the **lowest and highest thirds** of Parent 1-reported warmth at age 10/11, then asks whether the two cross-lagged paths are the same size in both groups.
+  If warmth moderates, forcing the paths to be equal across groups should make the model fit noticeably worse.
+- Warmth is taken at baseline only, so each child stays in one group across all three waves.
+  A group that changed wave to wave would make the comparison uninterpretable.
+- The middle third is set aside for this test, because tertile extremes give a cleaner contrast than a median split.
+  The continuous sensitivity analysis below puts them back in and keeps warmth as a full scale.
+- Everything else in the model — autoregressions, variances, random intercepts — is free to differ between the groups, so the test isolates the paths H2 is actually about.
+- Both model families are run, as for H1.
+
+```{r moderation-setup}
+moderation <- tar_read(moderation_test, store = store)
+mod_estimates <- tar_read(moderation_table, store = store)
+```
+
+## Does warmth change the cross-lagged paths?
+
+```{r tbl-moderation-omnibus}
+knitr::kable(
+  moderation$omnibus,
+  caption = "Test of H2: scaled chi-square difference between models with the cross-lagged paths free to differ between warmth groups and constrained equal across them."
+)
+```
+
+```{r tbl-moderation-paths}
+knitr::kable(
+  moderation$paths,
+  caption = "Wald tests of each cross-lagged path separately across warmth groups."
+)
+```
+
+::: {.callout-note title="Interpretation"}
+- **H2 is not supported, in either model family.**
+  Constraining the cross-lagged paths to be equal across the warmth groups does not worsen fit at all (RI-CLPM Δχ²(2) = 0.32, p = .851; CLPM Δχ²(2) = 1.44, p = .487).
+- Testing each direction separately gives the same answer: no individual cross-lag differs between higher- and lower-warmth children.
+- These are comfortable nulls rather than borderline ones.
+  The omnibus statistics are far smaller than their degrees of freedom, which is what "no signal whatsoever" looks like.
+:::
+
+## Estimates by warmth group
+
+```{r fig-moderation, fig.cap="Standardised cross-lagged estimates with 95% confidence intervals, by baseline parental warmth group and model family. H2 predicts the amber intervals sitting to the left of the blue ones.", fig.width=8, fig.height=3.4}
+tar_read(moderation_plot, store = store)
+```
+
+```{r tbl-moderation-estimates}
+knitr::kable(
+  mod_estimates,
+  caption = "Lagged path estimates by baseline parental warmth group. Cross-lagged paths are constrained equal across the two lags but free to differ between groups."
+)
+```
+
+::: {.callout-note title="Interpretation"}
+- The point estimates do lean the way H2 predicts: every cross-lag is smaller in the higher-warmth group (for example, SDQ → video games is β = .115 vs .058 in the RI-CLPM and β = .103 vs .069 in the CLPM).
+- But the confidence intervals overlap heavily, and the differences are nowhere near significant.
+  A consistent direction across four comparisons is worth mentioning, but it is not evidence for H2 — with these interval widths the pattern is well within chance.
+- Splitting the sample halves the power for each group, and the H1b effect that was significant in the full sample (β = .091, p = .006) is no longer significant within either warmth group on its own (p = .090 and p = .263).
+  That is a loss of precision from subgrouping, not a contradiction of the H1 result.
+- The odd within-person video game autoregression flagged for H1 is more extreme here (β = −.50 in the lower-warmth group, with a very wide interval), which is what halving the sample does to an already unstable parameter.
+:::
+
+## Sensitivity: warmth as a continuous moderator {#sec-h2-continuous}
+
+The multi-group test categorises warmth and drops the middle third.
+This model keeps warmth continuous, uses the whole sample, and tests moderation as an interaction term instead.
+It is fitted as a CLPM only: the RI-CLPM equivalent would need a latent interaction, which is not practically estimable with three waves.
+
+```{r tbl-interaction}
+knitr::kable(
+  tar_read(interaction_table, store = store),
+  caption = "Continuous moderation model: cross-lagged paths and warmth × predictor interaction terms. A significant interaction would indicate moderation."
+)
+```
+
+::: {.callout-note title="Interpretation"}
+- Neither interaction term is significant (p = .135 and p = .163), so the continuous test agrees with the multi-group test: no evidence that warmth moderates either direction.
+- Both interaction coefficients are negative, which is again the direction H2 predicts — higher warmth going with weaker associations — but neither reaches significance.
+- Reaching the same conclusion with warmth categorised and continuous, on two different samples (the tertile extremes and everyone), is reassuring: the null is not an artefact of how warmth was handled.
+- Two caveats on this model: product terms are missing whenever either component is missing, and the estimator treats them as if normally distributed when they are not.
+  Both are reasons to treat it as support for the primary test rather than as a test in its own right.
+:::
+
 # Supplementary material
+
+## Model fit for the moderation models {#sec-supp-moderation-fit}
+
+```{r tbl-moderation-fit}
+knitr::kable(
+  tar_read(moderation_fit_table, store = store),
+  caption = "Fit of the multi-group moderation models. N is the combined sample across both warmth groups."
+)
+```
 
 ## Stationarity in the CLPM {#sec-supp-stationarity-clpm}
 

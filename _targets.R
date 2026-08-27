@@ -105,5 +105,66 @@ list(
   tar_target(clpm_table, make_model_table(clpm_cross)),
   tar_target(path_diagram, plot_path_diagram(riclpm_cross)),
   tar_target(clpm_path_diagram, plot_path_diagram(clpm_cross)),
+  # Step 4: moderation by parental warmth (H2).
+  #
+  # Decision (2026-08-27): every moderation model is fitted in both families,
+  # so the choice of primary model stays reversible. The multi-group models
+  # free everything except the cross-lags across warmth groups, so the
+  # constrained-vs-free comparison isolates the paths H2 is about.
+  #
+  # The continuous-interaction sensitivity is CLPM-only by necessity: the
+  # RI-CLPM equivalent is a latent interaction, which needs LMS/QML estimation
+  # lavaan does not provide and which is not estimable with three waves.
+  tar_target(df_moderation, add_warmth_groups(df_model), format = "qs"),
+  tar_target(
+    riclpm_mg_free,
+    fit_riclpm(df_moderation, group = "warmth_group")
+  ),
+  tar_target(
+    riclpm_mg_equal,
+    fit_riclpm(
+      df_moderation,
+      group = "warmth_group",
+      cross_equal_across_groups = TRUE
+    )
+  ),
+  tar_target(clpm_mg_free, fit_clpm(df_moderation, group = "warmth_group")),
+  tar_target(
+    clpm_mg_equal,
+    fit_clpm(
+      df_moderation,
+      group = "warmth_group",
+      cross_equal_across_groups = TRUE
+    )
+  ),
+  tar_target(
+    moderation_test,
+    test_moderation(list(
+      "RI-CLPM" = list(free = riclpm_mg_free, equal = riclpm_mg_equal),
+      "CLPM" = list(free = clpm_mg_free, equal = clpm_mg_equal)
+    ))
+  ),
+  tar_target(
+    moderation_table,
+    make_moderation_table(list(
+      "RI-CLPM" = riclpm_mg_free,
+      "CLPM" = clpm_mg_free
+    ))
+  ),
+  tar_target(
+    moderation_plot,
+    plot_moderation(list("RI-CLPM" = riclpm_mg_free, "CLPM" = clpm_mg_free))
+  ),
+  tar_target(
+    moderation_fit_table,
+    compare_model_fit(list(
+      "RI-CLPM, cross-lags free" = riclpm_mg_free,
+      "RI-CLPM, cross-lags equal" = riclpm_mg_equal,
+      "CLPM, cross-lags free" = clpm_mg_free,
+      "CLPM, cross-lags equal" = clpm_mg_equal
+    ))
+  ),
+  tar_target(clpm_interaction, fit_clpm_interaction(df_moderation)),
+  tar_target(interaction_table, make_interaction_table(clpm_interaction)),
   tar_quarto(report, "doc/report.qmd")
 )

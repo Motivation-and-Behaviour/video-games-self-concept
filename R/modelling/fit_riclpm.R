@@ -28,6 +28,10 @@
 #'   "all", or "none".
 #' @param covariates_on "between" (covariates predict the random intercepts)
 #'   or "within"; ignored when `covariates` is empty.
+#' @param group Optional grouping column for a multi-group model (Step 4
+#'   moderation). Rows with a missing group are dropped.
+#' @param cross_equal_across_groups Constrain the cross-lags equal across
+#'   groups. The moderation test compares this against the free version.
 #' @return A fitted `lavaan` object.
 #' @author Taren Sanders
 #' @export
@@ -38,17 +42,26 @@ fit_riclpm <- function(
   waves = c(10, 12, 14),
   covariates = character(0),
   constrain = c("cross", "all", "none"),
-  covariates_on = c("between", "within")
+  covariates_on = c("between", "within"),
+  group = NULL,
+  cross_equal_across_groups = FALSE
 ) {
+  dat <- prep_sem_data(
+    df_model,
+    modelled = c(paste0(x, "_", waves), paste0(y, "_", waves)),
+    group = group
+  )
   syntax <- riclpm_syntax(
     x = x,
     y = y,
     waves = waves,
     covariates = covariates,
     constrain = match.arg(constrain),
-    covariates_on = match.arg(covariates_on)
+    covariates_on = match.arg(covariates_on),
+    n_groups = n_model_groups(dat, group),
+    cross_equal_across_groups = cross_equal_across_groups
   )
-  fit_panel_model(syntax, df_model, x, y, waves)
+  fit_panel_model(syntax, dat, group)
 }
 
 #' Estimate a panel model with the project's standard lavaan options
@@ -60,24 +73,26 @@ fit_riclpm <- function(
 #' whenever equality constraints are imposed with labels: the constrained
 #' parameters appear twice in `vcov()`, which is rank-deficient by
 #' construction. The warning is an artefact of that parameterisation, not a
-#' sign of underidentification, so it is suppressed here.
+#' sign of underidentification, so it is suppressed here. So is the multi-group
+#' warning about single labels imposing cross-group equality, which is exactly
+#' what the constrained moderation model is for.
+#'
+#' `group.label` is passed explicitly because lavaan otherwise orders groups
+#' alphabetically rather than by factor level, which would silently swap which
+#' group the `_g1`/`_g2` path labels refer to.
 #'
 #' @param syntax lavaan model syntax.
-#' @param df_model Wide analysis data.
-#' @param x,y Variable prefixes.
-#' @param waves Age bands, in order.
+#' @param dat Prepared analysis data from `prep_sem_data()`.
+#' @param group Optional grouping column name.
 #' @return A fitted `lavaan` object.
 #' @noRd
-fit_panel_model <- function(syntax, df_model, x, y, waves) {
-  dat <- prep_sem_data(
-    df_model,
-    modelled = c(paste0(x, "_", waves), paste0(y, "_", waves))
-  )
-
+fit_panel_model <- function(syntax, dat, group = NULL) {
   withCallingHandlers(
     lavaan::lavaan(
       model = syntax,
       data = dat,
+      group = group,
+      group.label = if (is.null(group)) NULL else levels(factor(dat[[group]])),
       estimator = "MLR",
       missing = "fiml",
       fixed.x = FALSE,
@@ -89,7 +104,16 @@ fit_panel_model <- function(syntax, df_model, x, y, waves) {
       auto.cov.lv.x = TRUE
     ),
     warning = function(w) {
-      if (grepl("positive definite", conditionMessage(w), fixed = TRUE)) {
+      expected <- c("positive definite", "single label per parameter")
+      if (
+        any(vapply(
+          expected,
+          grepl,
+          logical(1),
+          x = conditionMessage(w),
+          fixed = TRUE
+        ))
+      ) {
         invokeRestart("muffleWarning")
       }
     }
