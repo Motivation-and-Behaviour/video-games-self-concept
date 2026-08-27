@@ -182,7 +182,203 @@ knitr::kable(
    — Supports sex as a covariate in all models.
 :::
 
+# Cross-lagged models (H1)
+
+```{r model-fit-setup}
+model_fit <- tar_read(model_fit_table, store = store)
+n_sem <- model_fit$N[model_fit$Model == "RI-CLPM (primary)"]
+```
+
+## What the models do
+
+- Both models estimate whether video game use predicts later SDQ total difficulties (H1a) and whether difficulties predict later video game use (H1b), across the three age bands.
+- The **traditional CLPM** relates each child's score to their earlier score without separating "this child games more than other children" from "this child is gaming more than they usually do".
+  Sex and socioeconomic position are included as covariates.
+- The **RI-CLPM** adds a random intercept for each variable, which captures each child's stable average level.
+  The lagged paths are then estimated on what is left over — deviations from a child's own average — so they answer the within-person question the hypotheses are actually about.
+  This is the primary model.
+- The RI-CLPM does not include sex or SES.
+  The random intercepts already absorb every stable difference between children, including those two and anything unmeasured, so the lagged paths are not confounded by them.
+  Adding them back caused problems rather than solving them (see @sec-h1-decisions), and they are reported separately at Step 5 instead.
+- Both are estimated with robust maximum likelihood and FIML, on the `r format(n_sem, big.mark = ",")` children with data on at least one of the six modelled variables.
+- Every result in this report is produced for **both** model families, so that the choice of primary model can be revisited without redoing the analysis.
+  Throughout, the RI-CLPM is presented first as the primary model and the CLPM second as the comparison; nothing depends on that ordering.
+
+## Two different questions: within-child and between-child {#sec-within-between}
+
+The two models answer genuinely different questions, and it is worth being explicit about which one each hypothesis is asking.
+
+- A **between-child** question compares children to each other: *do children who game more than other children report more difficulties than other children?*
+- A **within-child** question compares a child to themselves at other times: *when a child games more than is usual for them, do they report more difficulties than is usual for them, later on?*
+
+Both are reported below, because they are separate findings and neither implies the other.
+Two children can differ enormously in average gaming and average difficulties without gaming ever changing anything for either of them.
+
+The RI-CLPM is the primary model because the hypotheses are phrased prospectively — H1a is that gaming predicts *subsequent* self-concept — and because a between-child comparison cannot support that claim on its own.
+The reason is structural rather than a matter of preference: a child's stable average is a single number with no time attached to it, so there is no earlier and later to put in order.
+Between-child differences can establish that an association exists; they cannot establish direction.
+
+The moment a between-child comparison is made prospective — "do children who game more at 10/11 have more difficulties at 12/13?" — it becomes vulnerable to any stable difference between children that was never measured.
+A child in a chaotic household might game more *and* report more difficulties at every wave, which produces exactly that prospective association with no causal link between the two.
+Separating the two levels is what the random intercepts are for.
+
+The proposal specified cross-lagged panel analysis without distinguishing the two, so this is a decision made at the analysis-plan stage rather than a requirement inherited from the proposal.
+
+## Model fit
+
+```{r tbl-model-fit}
+knitr::kable(
+  model_fit,
+  caption = "Fit of the cross-lagged models. Robust (MLR-corrected) indices. Fit statistics and information criteria are only comparable between models fitted to the same variables, so the covariate-adjusted CLPM (8 variables) cannot be compared with the other two (6 variables)."
+)
+```
+
+::: {.callout-note title="Interpretation"}
+- The RI-CLPM fits substantially better than the CLPM on the same six variables: RMSEA .072 vs .115, CFI .990 vs .947, and a BIC around 157 points lower.
+- That gap is the point of the exercise.
+  Most of what looks like "gaming predicts difficulties" in the CLPM is stable between-child difference — some children simply game more *and* report more difficulties than others — rather than change within a child over time.
+- No model reaches a non-significant χ², but with N ≈ 3,900 that is expected and not very informative.
+:::
+
+## Does the effect stay the same across the two lags? {#sec-h1-decisions}
+
+The model can either estimate each lag separately or assume the paths are the same size from 10/11 → 12/13 as from 12/13 → 14/15.
+Assuming they are equal is normally preferred with only three waves, because leaving everything free leaves just one degree of freedom.
+
+```{r tbl-stationarity}
+stationarity <- tar_read(stationarity_riclpm, store = store)
+knitr::kable(
+  stationarity$comparisons,
+  caption = "Scaled chi-square difference tests of the constrained RI-CLPMs against the freely estimated model."
+)
+```
+
+```{r tbl-stationarity-paths}
+knitr::kable(
+  stationarity$constraints,
+  caption = "Univariate score tests on the fully constrained RI-CLPM: which lagged paths actually differ between the two lags."
+)
+```
+
+::: {.callout-note title="Interpretation"}
+- Assuming *all* paths are equal across lags is clearly wrong here.
+- But the second table shows the problem is entirely in the autoregressive paths — how strongly a child's own earlier deviation predicts their later one — not in the cross-lagged paths the hypotheses are about.
+  The SDQ → video games path in particular is statistically indistinguishable across the two lags.
+- So the primary model pools the cross-lags (giving one estimate per hypothesis) and lets the autoregressions differ.
+  That version is not significantly worse than the free model, and fits better than either alternative.
+- I checked whether this was caused by video game hours being skewed, by refitting on square-root and log-transformed hours.
+  It isn't — the same pattern appears on every scale.
+  The underlying cause is that the *spread* of gaming nearly triples between 10/11 and 14/15 (variance 45 → 125) as more children stop playing entirely and others play much more, and no transformation removes that.
+:::
+
+## Within-child effects: RI-CLPM (primary)
+
+```{r tbl-riclpm}
+knitr::kable(
+  tar_read(riclpm_table, store = store),
+  caption = "RI-CLPM structural estimates. Unstandardised coefficients are in hours/week and SDQ points; β are fully standardised. Cross-lagged paths are constrained equal across lags."
+)
+```
+
+```{r fig-path-diagram, fig.cap="RI-CLPM with standardised estimates. Squares are observed variables, ellipses are latent: the random intercepts capture stable between-child differences, and the within-person components (VG, SDQ) capture each child's deviation from their own average. Blue arrows are the estimated structural paths; grey dashed arrows are fixed at 1. * p < .05, ** p < .01, *** p < .001.", fig.width=8, fig.height=6.5}
+tar_read(path_diagram, store = store)
+```
+
+::: {.callout-note title="Interpretation"}
+- **H1b is supported.** When a child reports more difficulties than usual for them, they report more video game use than usual two years later (β = .091, 95% CI [.024, .158], p = .006).
+  The effect is small: roughly 0.13 extra hours per week per additional SDQ point.
+- **H1a is not supported.** Gaming more than usual does not predict later difficulties (β = .004, 95% CI [−.026, .034], p = .783).
+  This is a precise null, not an underpowered one — the confidence interval rules out anything beyond a trivially small effect in either direction.
+- So the relationship looks one-directional, and in the opposite direction to the common assumption: difficulties appear to lead gaming rather than gaming leading difficulties.
+- The random intercepts correlate .21 (p < .001), which is where the raw association mostly lives.
+  Children who game more on average do report more difficulties on average — but that is a between-child difference, not evidence that gaming changes anything.
+- One oddity worth flagging: the within-person video game autoregression is −.26 at the first lag and +.28 at the second.
+  A negative within-person autoregression is not impossible (a spike above your own average tends to be followed by a dip below it), but a sign flip that large is more likely instability from the near-saturated three-wave model combined with gaming's sharply growing variance.
+  It does not affect the cross-lagged conclusions, which are stable across every specification tested.
+:::
+
+## Between-child differences {#sec-between-person}
+
+The same RI-CLPM also estimates the between-child side of the relationship, in the correlation between the two random intercepts — that is, between a child's stable average gaming level and their stable average level of difficulties.
+This is the answer to "do children who game more than other children report more difficulties than other children?".
+
+```{r between-person}
+riclpm_estimates <- tar_read(riclpm_table, store = store)
+ri_row <- riclpm_estimates[
+  riclpm_estimates$Parameter == "Random intercept correlation",
+]
+```
+
+**Children who game more on average do report more difficulties on average: r = `r ri_row[["β"]]`, 95% CI `r ri_row[["β 95% CI"]]`, p `r ri_row[["p"]]`.**
+
+This between-child association is *larger than either within-child cross-lagged effect in the model*.
+Most of the raw relationship between gaming and difficulties — the one visible in the correlation table earlier — is of this kind: a difference between children rather than a process operating within them.
+
+How much of each variable exists at each level is itself informative:
+
+```{r tbl-variance-split}
+knitr::kable(
+  tar_read(variance_split, store = store),
+  caption = "Proportion of each variable's variance that is stable between-child difference versus within-child variation, from the RI-CLPM."
+)
+```
+
+::: {.callout-note title="Interpretation"}
+- Difficulties are consistently about 40% between-child at every age: some children simply report more problems than others, stably, and that share does not change as they get older.
+- Video game use behaves very differently. At 10/11 it is strongly trait-like (68% between-child), but by 14/15 only 25% is stable difference and three quarters is occasion-specific.
+  Gaming stops being "the sort of child you are" and becomes "what you happened to be doing that year".
+- That shift is the same phenomenon as the growing variance noted earlier, and it is the most likely explanation for the unstable within-child gaming autoregression: there is progressively less stable signal to carry forward.
+- Putting the two levels together: there is a real and reasonably clear association between gaming and difficulties **between** children (r = .21), and essentially no evidence that gaming drives difficulties **within** a child over time (β = .004).
+  Reporting only one of those would misrepresent the data.
+:::
+
+## Comparison model: CLPM estimates
+
+```{r tbl-clpm}
+knitr::kable(
+  tar_read(clpm_table, store = store),
+  caption = "Traditional CLPM structural estimates, adjusted for sex and socioeconomic position. Cross-lagged paths are constrained equal across lags."
+)
+```
+
+```{r fig-clpm-path-diagram, fig.cap="Traditional CLPM with standardised estimates. All variables are observed (squares); with no random intercepts, the lagged paths run directly between them and mix between-child and within-child variation. Sex and socioeconomic position are included as covariates but their paths are omitted for legibility. * p < .05, ** p < .01, *** p < .001.", fig.width=8, fig.height=3.6}
+tar_read(clpm_path_diagram, store = store)
+```
+
+::: {.callout-note title="Interpretation"}
+- The CLPM finds **both** cross-lagged paths significant (H1a β = .051, H1b β = .082, both p < .001), which would support a bidirectional relationship.
+- The RI-CLPM shows that the H1a path is an artefact of not separating between- from within-child variance.
+  This is exactly the pattern Hamaker et al. (2015) describe, and the reason the RI-CLPM is the primary model here.
+- Reporting the CLPM alone would have produced a materially different — and I think wrong — conclusion.
+:::
+
 # Supplementary material
+
+## Stationarity in the CLPM {#sec-supp-stationarity-clpm}
+
+The same constraint tests for the comparison CLPM, for completeness.
+
+```{r tbl-stationarity-clpm}
+stationarity_clpm <- tar_read(stationarity_clpm, store = store)
+knitr::kable(
+  stationarity_clpm$comparisons,
+  caption = "Scaled chi-square difference tests of the constrained CLPMs against the freely estimated CLPM."
+)
+```
+
+```{r tbl-stationarity-clpm-paths}
+knitr::kable(
+  stationarity_clpm$constraints,
+  caption = "Univariate score tests on the fully constrained CLPM."
+)
+```
+
+The CLPM does *not* show the same pattern as the RI-CLPM.
+Full stationarity is rejected here too, but so is the cross-lags-only constraint, and the paths that differ across lags are different ones — the SDQ autoregression and the SDQ → video games cross-lag, rather than both autoregressions.
+
+The CLPM reported in the main text still uses the same constraint as the RI-CLPM, so that the fit comparison in @tbl-model-fit is like-for-like.
+That imposes one constraint the CLPM's own data reject, which is a real cost, but it does not change what the CLPM concludes: with all lagged paths freely estimated its cross-lags remain significant in both directions and at both lags (video games → SDQ β = .072 and .043; SDQ → video games β = .055 and .091; all p < .01).
+The divergence from the RI-CLPM in @tbl-riclpm is therefore driven by the between/within separation, not by the constraint choice.
 
 ## Descriptive statistics by sex {#sec-supp-descriptives}
 
