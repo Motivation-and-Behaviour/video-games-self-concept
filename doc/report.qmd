@@ -31,15 +31,27 @@ store <- here::here("_targets")
 
 # Methods
 
-- Data: LSAC B cohort at ages 10/11, 12/13, and 14/15 (waves 6–8). The K cohort is excluded because its age-14 wave (2012) did not have the video game time item.
+- Data: LSAC B cohort at ages 10/11, 12/13, and 14/15 (waves 6–8).
+  The K cohort is excluded because its age-14 wave (2012) did not have the video game time item.
 
 ## Key Variables
 
 - Video game use: reported minutes of electronic games in an average week, converted to hours/week.
-- Self-concept: self-reported SDQ. The total difficulties score is the primary outcome, and internalising (emotional + peer) and externalising (conduct + hyperactivity) composites are for secondary analyses. The Parent 1-reported SDQ total is also kept for an informant-robustness check.
-- Parental warmth (the moderator): Parent 1's score on the 6-item Parental Warmth Scale (1–5). Parent 2's score is retained for a both-parents sensitivity model. It's not the primary model because so much of Parent 2's data is missing.
+- Self-concept: self-reported SDQ.
+  The total difficulties score is the primary outcome, and internalising (emotional + peer) and externalising (conduct + hyperactivity) composites are for secondary analyses.
+  The Parent 1-reported SDQ total is also kept for an informant-robustness check.
+- Parental warmth (the moderator): Parent 1's score on the 6-item Parental Warmth Scale (1–5).
+  Parent 2's score is retained for a both-parents sensitivity model.
+  It's not the primary model because so much of Parent 2's data is missing.
 - Covariates: sex, socioeconomic position, and age in months, all at the age 10/11 baseline.
-- Cleaning: LSAC missing-data codes recoded to missing. Video game hours more than 4 SD above the within-wave mean are winsorised (that is, set to the 4 SD value). That is different from the proposal (which said set to NA), but I think makes more sense. The flagged values look like real heavy gamers overstating, so we keep them but cap their influence. I'll also test setting them to missing as a sensitivity analysis. SES and warmth are not screened — there are only a few extreme SES values and these seem plausible given the size of LSAC, and low warmth scores are likely to be real given that these are likert scale items.
+- Cleaning: LSAC missing-data codes recoded to missing.
+  Video game hours more than 4 SD above the within-wave mean are winsorised (that is, set to the 4 SD value).
+  That is different from the proposal (which said set to NA), but I think makes more sense.
+  The flagged values look like real heavy gamers overstating, so we keep them but cap their influence.
+  I'll also test setting them to missing as a sensitivity analysis.
+  SES and warmth are not screened — there are only a few extreme SES values and these seem plausible given the size of LSAC, and low warmth scores are likely to be real given that these are likert scale items.
+- Analysis sample: all children with data on at least one study variable (video games, SDQ, or warmth) at one or more waves, with models estimated using full-information maximum likelihood (FIML) under a missing-at-random (MAR) assumption.
+  The proposal's complete-case (data at all three waves) can be done as a sensitivity analysis.
 
 # Data and derivations
 
@@ -60,7 +72,8 @@ tar_read(distributions_plot, store = store)
 
 ## Video game hours: outlier tail {#sec-vg-tail}
 
-Values more than 4 SD above the within-wave mean are winsorised to 4 SD from mean. The flagged values are shown below before windsorising.
+Values more than 4 SD above the within-wave mean are winsorised to 4 SD from mean.
+The flagged values are shown below before windsorising.
 
 ```{r tbl-vg-tail}
 knitr::kable(
@@ -69,12 +82,114 @@ knitr::kable(
 )
 ```
 
-::: {.callout-note title="Checkpoint decisions (Step 1)"}
-- Do the derivations (hours/week conversion, SDQ composites, within-wave
-  z-scores) look right?
-- Decided 2026-07-27: flagged video game hours are winsorised to the 4 SD
-  threshold (set-to-missing kept as a sensitivity analysis); SES and
-  warmth are not outlier-screened.
-- Inclusion criterion flagged for the Step 2 checkpoint: FIML under MAR
-  (recommended) vs the proposal's complete-case criterion.
+# Sample and descriptives
+
+## Sample flow
+
+```{r sample-flow}
+sample_flow <- tar_read(sample_flow, store = store)
+n_file <- sample_flow$flow$`N children`[1]
+n_analysis <- sample_flow$flow$`N children`[2]
+n_complete <- sample_flow$flow$`N children`[7]
+```
+
+The three B-cohort wave files contain `r format(n_file, big.mark = ",")` children.
+The analysis sample (children with data on at least one study variable at one or more waves) is N = `r format(n_analysis, big.mark = ",")`.
+The proposal's complete-case criterion would retain N = `r format(n_complete, big.mark = ",")` (`r sample_flow$flow[["% of cohort file"]][7]`% of the cohort file).
+That makes me think that FIML is definitely the way to go.
+
+```{r tbl-sample-flow}
+knitr::kable(
+  sample_flow$flow,
+  caption = "Sample flow from the wave 6–8 B-cohort files to the analysis samples."
+)
+```
+
+```{r tbl-participation-patterns}
+knitr::kable(
+  sample_flow$patterns,
+  caption = "Wave-participation patterns (any study data at each wave) among the analysis sample.",
+  align = c("c", "c", "c", "r", "r")
+)
+```
+
+::: {.callout-note title="Interpretation"}
+- Three-quarters of the analysis sample (74.2%) have study data at all three waves, and 86.6% at two or more.
+- Complete-case analysis would discard more than a third (36.9%) of the sample.
+  So FIML is a good option.
 :::
+
+## Descriptive statistics
+
+```{r descriptives}
+descriptives <- tar_read(descriptives_table, store = store)
+knitr::kable(
+  descriptives$by_age,
+  caption = "Descriptive statistics by age band. N per column is children with any data at that wave; individual variables have additional item-level missingness."
+)
+```
+
+## Trajectories
+
+```{r plot-trajectories, fig.cap="Video game hours and self-reported SDQ total difficulties by age band: distributions (violins) with means and 95% CIs.", fig.width=8, fig.height=4}
+tar_read(trajectory_plot, store = store)
+```
+
+::: {.callout-note title="Interpretation"}
+- Video game use rises with age (7.7 → 8.5 → 10.1 hrs/week on average) and, quite interestingly, spreads out.
+  The SD grows from 6.7 to 11.2, with a lengthening upper tail.
+- SDQ total difficulties dips at 12/13 (10.1 → 9.3) then returns to baseline at 14/15 (10.3).
+  It's pretty small, so I wouldn't overinterpret it.
+- Parental warmth declines steadily with age (4.35 → 4.08).
+  Again pretty small, and might just be due to dropout?
+:::
+
+# Missingness and attrition {#sec-attrition}
+
+Children with any study data at age 10/11 who also have study data at either follow-up wave ("retained") are compared with those who have none ("lost") on their baseline characteristics.
+Standardised mean differences (SMD) are the retained-minus-lost difference in pooled-SD units.
+|SMD| < 0.10 is conventionally negligible.
+
+```{r tbl-attrition}
+knitr::kable(
+  tar_read(attrition_table, store = store),
+  caption = "Baseline (age 10/11) characteristics of children retained at follow-up vs lost to follow-up."
+)
+```
+
+::: {.callout-note title="Interpretation"}
+- Attrition is clearly not completely at random: lost children are lower-SES (SMD 0.37) and report slightly higher baseline difficulties (SMD −0.12).
+  Sex, warmth, and video game hours show negligible differences.
+- The variables that predict dropout (SES, baseline SDQ) are observed and in the model.
+  This is the MAR pattern FIML adjusts for, whereas complete-case analysis would tilt the sample toward higher-SES, better-functioning children.
+:::
+
+# Correlations
+
+```{r tbl-correlations}
+knitr::kable(
+  tar_read(correlation_table, store = store),
+  caption = "Zero-order correlations among the study variables (pairwise complete). SES is the age-10/11 z-composite; Female sex is coded 1 = female. \\* p < .05, \\*\\* p < .01, \\*\\*\\* p < .001."
+)
+```
+
+::: {.callout-note title="Interpretation"}
+- The cross-sectional and cross-lagged video-game–SDQ correlations are all small and positive (r = .04–.17).
+  - More gaming goes with slightly more difficulties, before any adjustment.
+- Rank-order stability is moderate for video games (.42–.51), higher for SDQ (.57–.61) and warmth (.69–.70).
+- Warmth correlates negatively with both gaming and difficulties (r ≈ −.05 to −.12).
+- Sex is strongly related to gaming (girls lower, and increasingly so with age: −.24 → −.48) and flips sign for SDQ (−.09 at 10/11 to +.14 at 14/15).
+   — Supports sex as a covariate in all models.
+:::
+
+# Supplementary material
+
+## Descriptive statistics by sex {#sec-supp-descriptives}
+
+```{r tbl-by-sex-age}
+knitr::kable(
+  descriptives$by_sex_age,
+  caption = "Descriptive statistics by sex within age band."
+)
+```
+

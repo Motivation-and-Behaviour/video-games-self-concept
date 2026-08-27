@@ -51,5 +51,11 @@ list(
   tar_target(missingness_table, summarise_missingness(df_clean)),
   tar_target(vg_tail_table, summarise_vg_tail(df_clean)),
   tar_target(distributions_plot, plot_distributions(df_clean)),
+  # Step 2: sample, descriptives, and missingness
+  tar_target(sample_flow, summarise_sample_flow(df_clean, df_model)),
+  tar_target(descriptives_table, make_descriptives_table(df_clean)),
+  tar_target(attrition_table, summarise_attrition(df_model)),
+  tar_target(correlation_table, make_correlation_table(df_model)),
+  tar_target(trajectory_plot, plot_trajectories(df_clean)),
   tar_quarto(report, "doc/report.qmd")
 )
