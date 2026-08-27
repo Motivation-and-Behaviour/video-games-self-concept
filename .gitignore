@@ -62,3 +62,6 @@ _targets/
 .Rprofile
 scratch.R
 .env
+.claude/
+CLAUDE.md
+ANALYSIS_PLAN.md
