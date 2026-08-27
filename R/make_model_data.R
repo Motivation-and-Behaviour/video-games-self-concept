@@ -19,13 +19,27 @@ make_model_data <- function(df_clean) {
       age_cat,
       vg = videogames_hrs,
       vg_z = videogames_hrs_z,
+      # log(x + 1) handles the zero floor; used only by the Step 5 sensitivity
+      # analysis on the transformed scale.
+      vg_log = log(videogames_hrs + 1),
       sdq = sdq_total,
       sdq_int = sdq_internalising,
       sdq_ext = sdq_externalising,
       sdq_p1 = sdq_total_p1,
+      # Parent self-reported scales (P1/P2)...
       warm = parenting_warm_p1,
       warm_z = parenting_warm_p1_z,
-      warm_p2 = parenting_warm_p2
+      warm_p2 = parenting_warm_p2,
+      anger = parenting_angry_p1,
+      anger_p2 = parenting_angry_p2,
+      # ...and the child's report about each parent, which is the only form
+      # responsiveness, autonomy-granting and demandingness come in.
+      response_m = parenting_response_m,
+      response_f = parenting_response_f,
+      autonomy_m = parenting_autonomy_m,
+      autonomy_f = parenting_autonomy_f,
+      demand_m = parenting_demand_m,
+      demand_f = parenting_demand_f
     ) |>
     tidyr::pivot_wider(
       id_cols = id,

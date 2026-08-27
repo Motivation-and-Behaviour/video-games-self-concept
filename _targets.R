@@ -115,56 +115,117 @@ list(
   # The continuous-interaction sensitivity is CLPM-only by necessity: the
   # RI-CLPM equivalent is a latent interaction, which needs LMS/QML estimation
   # lavaan does not provide and which is not estimable with three waves.
-  tar_target(df_moderation, add_warmth_groups(df_model), format = "qs"),
+  tar_target(df_moderation, add_parenting_groups(df_model), format = "qs"),
   tar_target(
-    riclpm_mg_free,
-    fit_riclpm(df_moderation, group = "warmth_group")
+    moderation_riclpm,
+    fit_moderation_set(fit_riclpm, df_moderation)
   ),
+  tar_target(moderation_clpm, fit_moderation_set(fit_clpm, df_moderation)),
   tar_target(
-    riclpm_mg_equal,
-    fit_riclpm(
-      df_moderation,
-      group = "warmth_group",
-      cross_equal_across_groups = TRUE
-    )
+    moderation_sets,
+    list("RI-CLPM" = moderation_riclpm, "CLPM" = moderation_clpm)
   ),
-  tar_target(clpm_mg_free, fit_clpm(df_moderation, group = "warmth_group")),
-  tar_target(
-    clpm_mg_equal,
-    fit_clpm(
-      df_moderation,
-      group = "warmth_group",
-      cross_equal_across_groups = TRUE
-    )
-  ),
-  tar_target(
-    moderation_test,
-    test_moderation(list(
-      "RI-CLPM" = list(free = riclpm_mg_free, equal = riclpm_mg_equal),
-      "CLPM" = list(free = clpm_mg_free, equal = clpm_mg_equal)
-    ))
-  ),
-  tar_target(
-    moderation_table,
-    make_moderation_table(list(
-      "RI-CLPM" = riclpm_mg_free,
-      "CLPM" = clpm_mg_free
-    ))
-  ),
-  tar_target(
-    moderation_plot,
-    plot_moderation(list("RI-CLPM" = riclpm_mg_free, "CLPM" = clpm_mg_free))
-  ),
+  tar_target(moderation_test, test_moderation(moderation_sets)),
+  tar_target(moderation_table, make_moderation_table(moderation_sets)),
+  tar_target(moderation_plot, plot_moderation(moderation_sets)),
   tar_target(
     moderation_fit_table,
-    compare_model_fit(list(
-      "RI-CLPM, cross-lags free" = riclpm_mg_free,
-      "RI-CLPM, cross-lags equal" = riclpm_mg_equal,
-      "CLPM, cross-lags free" = clpm_mg_free,
-      "CLPM, cross-lags equal" = clpm_mg_equal
+    compare_model_fit(purrr::list_flatten(
+      purrr::map(moderation_sets, ~ purrr::map(.x, "free")),
+      name_spec = "{outer}, {inner}"
     ))
   ),
-  tar_target(clpm_interaction, fit_clpm_interaction(df_moderation)),
+  tar_target(clpm_interaction, fit_interaction_set(df_moderation)),
   tar_target(interaction_table, make_interaction_table(clpm_interaction)),
-  tar_quarto(report, "doc/report.qmd")
+  # Step 5: sensitivity and secondary analyses.
+  #
+  # Each variant changes one analytic choice and leaves the rest as specified,
+  # and the whole set is fitted in both model families for the same
+  # reversibility reason as Step 4.
+  tar_target(
+    df_clean_na,
+    clean_data(df_tidy, vg_outliers = "na"),
+    format = "qs"
+  ),
+  tar_target(df_model_na, make_model_data(df_clean_na), format = "qs"),
+  tar_target(df_complete, filter_complete_cases(df_model), format = "qs"),
+  tar_target(
+    sensitivity_riclpm,
+    fit_sensitivity_set(
+      fit_riclpm,
+      riclpm_cross,
+      df_model,
+      df_model_na,
+      df_complete
+    )
+  ),
+  tar_target(
+    sensitivity_clpm,
+    fit_sensitivity_set(
+      fit_clpm,
+      clpm_cross,
+      df_model,
+      df_model_na,
+      df_complete
+    )
+  ),
+  tar_target(
+    sensitivity_table,
+    make_sensitivity_table(list(
+      "RI-CLPM" = sensitivity_riclpm,
+      "CLPM" = sensitivity_clpm
+    ))
+  ),
+  # Between-person descriptive model: sex and SES predicting the random
+  # intercepts. Not a confounding adjustment (see the Step 3 decision) but the
+  # answer to "who games more, and reports more difficulties, on average".
+  tar_target(
+    riclpm_between,
+    fit_riclpm(
+      df_model,
+      covariates = c("female", "ses_z_10"),
+      covariates_on = "between"
+    )
+  ),
+  # The planned specification (covariates -> random intercepts) returns an
+  # improper solution, so the reported between-person estimates come from
+  # person means instead; the diagnostic documents the rejection.
+  tar_target(between_diagnostics, diagnose_between_riclpm(riclpm_between)),
+  tar_target(between_table, summarise_between_person(df_model)),
+  # Exploratory sex moderation. `female` drops out of the CLPM covariates
+  # because it has no within-group variance once sex is the grouping variable.
+  tar_target(riclpm_sex_free, fit_riclpm(df_model, group = "sex")),
+  tar_target(
+    riclpm_sex_equal,
+    fit_riclpm(df_model, group = "sex", cross_equal_across_groups = TRUE)
+  ),
+  tar_target(
+    clpm_sex_free,
+    fit_clpm(df_model, group = "sex", covariates = "ses_z_10")
+  ),
+  tar_target(
+    clpm_sex_equal,
+    fit_clpm(
+      df_model,
+      group = "sex",
+      covariates = "ses_z_10",
+      cross_equal_across_groups = TRUE
+    )
+  ),
+  tar_target(
+    sex_moderation_sets,
+    list(
+      "RI-CLPM" = list(
+        Sex = list(free = riclpm_sex_free, equal = riclpm_sex_equal)
+      ),
+      "CLPM" = list(Sex = list(free = clpm_sex_free, equal = clpm_sex_equal))
+    )
+  ),
+  tar_target(sex_moderation_test, test_moderation(sex_moderation_sets)),
+  tar_target(sex_moderation_plot, plot_moderation(sex_moderation_sets)),
+  tar_quarto(
+    report,
+    "doc/report.qmd",
+    extra_files = "doc/reference-portrait.docx"
+  )
 )

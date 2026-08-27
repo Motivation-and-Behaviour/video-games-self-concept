@@ -22,13 +22,14 @@ summarise_vg_tail <- function(df_clean) {
       threshold = mean + 4 * sd,
       n_flagged = sum(videogames_hrs_raw > threshold),
       max = max(videogames_hrs_raw),
-      flagged_values = paste(
-        sort(
-          round(videogames_hrs_raw[videogames_hrs_raw > threshold], 1),
-          decreasing = TRUE
-        ),
-        collapse = ", "
-      )
+      # Only the largest values are listed. The full list runs to ~110
+      # characters, which no reasonable page width accommodates, and the point
+      # of the column is to show that the tail is a smooth continuation with
+      # round-number heaping rather than to enumerate every case.
+      flagged_values = list(sort(
+        round(videogames_hrs_raw[videogames_hrs_raw > threshold], 1),
+        decreasing = TRUE
+      ))
     ) |>
     dplyr::transmute(
       `Age band` = sprintf("%d/%d", age_cat, age_cat + 1),
@@ -36,6 +37,20 @@ summarise_vg_tail <- function(df_clean) {
       `Mean (SD), hrs/wk` = sprintf("%.1f (%.1f)", mean, sd),
       `4 SD threshold` = sprintf("%.1f", threshold),
       `n flagged` = n_flagged,
-      `Flagged values (hrs/wk)` = flagged_values
+      `Largest flagged values (hrs/wk)` = vapply(
+        flagged_values,
+        function(v) {
+          shown <- utils::head(v, 8)
+          paste0(
+            paste(shown, collapse = ", "),
+            if (length(v) > length(shown)) {
+              sprintf(", … (%d more)", length(v) - length(shown))
+            } else {
+              ""
+            }
+          )
+        },
+        character(1)
+      )
     )
 }

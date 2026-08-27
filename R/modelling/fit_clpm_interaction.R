@@ -18,8 +18,9 @@
 #' which they are not; MLR standard errors mitigate but do not remove this.
 #'
 #' @title fit_clpm_interaction
-#' @param df_moderation Data from `add_warmth_groups()`, which supplies the
-#'   mean-centred `warm_c_10`.
+#' @param df_moderation Data from `add_parenting_groups()`, which supplies the
+#'   mean-centred moderator columns.
+#' @param moderator Name of the mean-centred moderator column.
 #' @param x,y Variable prefixes for the two panel variables.
 #' @param waves Age bands, in order.
 #' @param covariates Time-invariant covariate column names.
@@ -28,6 +29,7 @@
 #' @export
 fit_clpm_interaction <- function(
   df_moderation,
+  moderator = "warm_c",
   x = "vg",
   y = "sdq",
   waves = c(10, 12, 14),
@@ -38,10 +40,11 @@ fit_clpm_interaction <- function(
   lags <- seq_len(length(waves) - 1)
 
   dat <- prep_sem_data(df_moderation, modelled = c(xv, yv))
-  # Product terms: baseline warmth by each lag's predictor.
+  # Product terms: the baseline moderator by each lag's predictor.
   for (v in c(xv[lags], yv[lags])) {
-    dat[[paste0(v, "_xw")]] <- dat[[v]] * dat$warm_c_10
+    dat[[paste0(v, "_xw")]] <- dat[[v]] * dat[[moderator]]
   }
+  dat$moderator <- dat[[moderator]]
 
   lagged <- vapply(
     lags,
@@ -54,7 +57,7 @@ fit_clpm_interaction <- function(
         xv[i],
         " + cl_yx*",
         yv[i],
-        " + warm_c_10 + mod_yx*",
+        " + moderator + mod_yx*",
         yv[i],
         "_xw\n",
         yv[i + 1],
@@ -64,7 +67,7 @@ fit_clpm_interaction <- function(
         yv[i],
         " + cl_xy*",
         xv[i],
-        " + warm_c_10 + mod_xy*",
+        " + moderator + mod_xy*",
         xv[i],
         "_xw"
       )
@@ -73,7 +76,7 @@ fit_clpm_interaction <- function(
   )
 
   syntax <- paste(
-    "# Lagged paths, warmth main effect, and warmth x predictor interactions",
+    "# Lagged paths, moderator main effect, and moderator x predictor terms",
     paste(lagged, collapse = "\n"),
     "",
     "# Within-wave (residual) covariances",
@@ -87,19 +90,48 @@ fit_clpm_interaction <- function(
   fit_panel_model(syntax, dat)
 }
 
-#' Interaction estimates from the continuous moderation model
+#' Fit the continuous moderation model for every parenting construct
 #'
-#' @title make_interaction_table
-#' @param fit A fitted model from `fit_clpm_interaction()`.
-#' @return A tibble of the cross-lag and interaction estimates.
+#' @title fit_interaction_set
+#' @param df_moderation Data from `add_parenting_groups()`.
+#' @param moderators Named character vector of mean-centred moderator columns.
+#' @return A named list of fitted `lavaan` objects.
 #' @author Taren Sanders
 #' @export
-make_interaction_table <- function(fit) {
+fit_interaction_set <- function(
+  df_moderation,
+  moderators = moderator_centred()
+) {
+  purrr::map(moderators, function(m) {
+    fit_clpm_interaction(df_moderation, moderator = m)
+  })
+}
+
+#' Interaction estimates from the continuous moderation models
+#'
+#' Only the two interaction terms are reported: the cross-lags themselves are
+#' shown in the primary results, and across five moderators the full set would
+#' bury the moderation test.
+#'
+#' @title make_interaction_table
+#' @param fits Named list of models from `fit_interaction_set()`.
+#' @return A tibble of the interaction estimates, one row per term per model.
+#' @author Taren Sanders
+#' @export
+make_interaction_table <- function(fits) {
+  purrr::imap(fits, function(fit, moderator) {
+    interaction_terms(fit) |>
+      dplyr::mutate(Moderator = moderator, .before = 1)
+  }) |>
+    dplyr::bind_rows()
+}
+
+#' Interaction rows from one fitted continuous moderation model
+#' @noRd
+interaction_terms <- function(fit) {
   term_names <- c(
-    cl_xy = "Video games → SDQ (H1a)",
-    cl_yx = "SDQ → video games (H1b)",
-    mod_xy = "Warmth × video games → SDQ (H2)",
-    mod_yx = "Warmth × SDQ → video games (H2)"
+    mod_xy = "Moderator × video games → SDQ",
+    mod_yx = "Moderator × SDQ → video games"
   )
 
   est <- lavaan::parameterEstimates(fit, ci = TRUE) |>

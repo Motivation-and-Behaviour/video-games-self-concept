@@ -51,7 +51,7 @@ make_model_table <- function(fit, waves = c(10, 12, 14)) {
     dplyr::distinct(label, .keep_all = TRUE) |>
     dplyr::mutate(
       Parameter = unname(path_names[base]),
-      Lag = ifelse(is.na(lag), "Both lags (constrained)", lag_labels[lag])
+      Lag = ifelse(is.na(lag), "Both", lag_labels[lag])
     ) |>
     dplyr::arrange(match(base, names(path_names)), lag)
 

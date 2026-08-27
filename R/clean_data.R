@@ -69,6 +69,25 @@ clean_data <- function(df_tidy, vg_outliers = c("winsorise", "na")) {
       sdq_externalising = sdq_conduct + sdq_hyper
     )
 
+  # The child-reported parenting scales (responsiveness, autonomy-granting,
+  # demandingness) are built from items scored 1 = Strongly agree ... 5 =
+  # Strongly disagree, and the scale scores follow the items, so a HIGH score
+  # means LESS of the construct — the opposite direction to parent-reported
+  # warmth and anger. Reversed here so every parenting variable runs "higher =
+  # more of the named quality"; without this the moderation tertiles would be
+  # labelled backwards. Verified against the source items: e.g. "Talk with
+  # you" correlates +.76 with the raw responsiveness score.
+  child_reported <- c(
+    "parenting_response_m",
+    "parenting_response_f",
+    "parenting_autonomy_m",
+    "parenting_autonomy_f",
+    "parenting_demand_m",
+    "parenting_demand_f"
+  )
+  df_clean <- df_clean |>
+    dplyr::mutate(dplyr::across(dplyr::all_of(child_reported), ~ 6 - .x))
+
   labelled::var_label(df_clean) <- list(
     age_years = "Age (Years)",
     age_months = "Age (Months)",
@@ -86,8 +105,21 @@ clean_data <- function(df_tidy, vg_outliers = c("winsorise", "na")) {
     sdq_prosoc = "SDQ Prosocial",
     sdq_internalising = "SDQ Internalising (Emotional + Peer)",
     sdq_externalising = "SDQ Externalising (Conduct + Hyperactivity)",
-    parenting_warm_p1 = "Parental Warmth (Parent 1)",
-    parenting_warm_p2 = "Parental Warmth (Parent 2)",
+    # LSAC splits the parenting scales across two informants. Warmth, anger
+    # and self-efficacy are parent self-reports (P1/P2). Responsiveness,
+    # autonomy-granting and demandingness are the study child's report about
+    # each parent, and have no P1/P2 version at all. The labels say which is
+    # which, because the Step 5 informant analysis showed how much it matters.
+    parenting_warm_p1 = "Warmth (Parent 1 self-report)",
+    parenting_warm_p2 = "Warmth (Parent 2 self-report)",
+    parenting_angry_p1 = "Angry parenting (Parent 1 self-report)",
+    parenting_angry_p2 = "Angry parenting (Parent 2 self-report)",
+    parenting_response_m = "Responsiveness of mother (child-reported)",
+    parenting_response_f = "Responsiveness of father (child-reported)",
+    parenting_autonomy_m = "Autonomy-granting, mother (child-reported)",
+    parenting_autonomy_f = "Autonomy-granting, father (child-reported)",
+    parenting_demand_m = "Demandingness of mother (child-reported)",
+    parenting_demand_f = "Demandingness of father (child-reported)",
     family_cohesion = "Family Cohesion"
   )
 

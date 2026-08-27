@@ -105,7 +105,65 @@ test_stationarity <- function(fit_free, fit_cross, fit_all) {
     )
   )
 
-  list(comparisons = comparisons, constraints = constraints)
+  list(
+    comparisons = comparisons,
+    constraints = constraints,
+    cross_lags = compare_cross_lags(fit_free)
+  )
+}
+
+#' Are the cross-lags equal across lags once the autoregressions are free?
+#'
+#' The score tests in `test_stationarity()` come from the *fully* constrained
+#' model, so they are computed with the autoregressive equality constraints
+#' still imposed — and those are badly violated, which can distort them. This
+#' asks the same question of the freely estimated model, alongside each lag's
+#' own estimate, so that a pooled cross-lag can be checked against the two
+#' values it pools.
+#'
+#' @param fit_free Model with all lagged paths freely estimated.
+#' @return A tibble, one row per cross-lag.
+#' @noRd
+compare_cross_lags <- function(fit_free) {
+  path_names <- c(
+    cl_xy = "Video games → SDQ (H1a)",
+    cl_yx = "SDQ → video games (H1b)"
+  )
+  std <- lavaan::standardizedSolution(fit_free)
+
+  cell <- function(label) {
+    row <- std[std$label == label, ]
+    if (nrow(row) == 0) {
+      return("—")
+    }
+    sprintf(
+      "%s [%s, %s], p %s",
+      fmt_fit(row$est.std[1]),
+      fmt_fit(row$ci.lower[1]),
+      fmt_fit(row$ci.upper[1]),
+      sub("^([^<])", "= \\1", fmt_p(row$pvalue[1]))
+    )
+  }
+
+  purrr::imap(path_names, function(label, base) {
+    w <- suppressWarnings(lavaan::lavTestWald(
+      fit_free,
+      constraints = sprintf("%s1 == %s2", base, base)
+    ))
+    tibble::tibble(
+      Path = label,
+      `Lag 1 (10/11 → 12/13)` = cell(paste0(base, "1")),
+      `Lag 2 (12/13 → 14/15)` = cell(paste0(base, "2")),
+      `χ² (1)` = sprintf("%.2f", w$stat),
+      p = fmt_p(w$p.value),
+      Verdict = if (w$p.value < .05) {
+        "Differs across lags"
+      } else {
+        "Equal across lags"
+      }
+    )
+  }) |>
+    dplyr::bind_rows()
 }
 
 #' Format a fit index to two decimals with a leading dot stripped

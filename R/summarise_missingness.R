@@ -18,6 +18,14 @@ summarise_missingness <- function(df_clean) {
     "sdq_total_p1",
     "parenting_warm_p1",
     "parenting_warm_p2",
+    "parenting_angry_p1",
+    "parenting_angry_p2",
+    "parenting_response_m",
+    "parenting_response_f",
+    "parenting_autonomy_m",
+    "parenting_autonomy_f",
+    "parenting_demand_m",
+    "parenting_demand_f",
     "ses",
     "sex"
   )
