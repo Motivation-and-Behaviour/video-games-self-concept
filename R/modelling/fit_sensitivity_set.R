@@ -57,7 +57,7 @@ fit_sensitivity_set <- function(
 make_sensitivity_table <- function(sets) {
   purrr::imap(sets, function(fits, family) {
     purrr::imap(fits, function(fit, analysis) {
-      std <- lavaan::standardizedSolution(fit)
+      std <- std_solution(fit)
       m <- lavaan::fitMeasures(fit)
       tibble::tibble(
         Model = family,
@@ -75,6 +75,8 @@ make_sensitivity_table <- function(sets) {
 }
 
 #' Format one cross-lag as "β [CI]" with significance stars
+#'
+#' Stars test the unstandardised estimate; see `std_solution()`.
 #' @noRd
 cross_lag_cell <- function(std, base) {
   row <- std[std$label == base, ]

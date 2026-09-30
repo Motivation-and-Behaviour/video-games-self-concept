@@ -119,7 +119,8 @@ test_stationarity <- function(fit_free, fit_cross, fit_all) {
 #' still imposed — and those are badly violated, which can distort them. This
 #' asks the same question of the freely estimated model, alongside each lag's
 #' own estimate, so that a pooled cross-lag can be checked against the two
-#' values it pools.
+#' values it pools. Each lag's p-value tests the unstandardised estimate; see
+#' `std_solution()`.
 #'
 #' @param fit_free Model with all lagged paths freely estimated.
 #' @return A tibble, one row per cross-lag.
@@ -129,7 +130,7 @@ compare_cross_lags <- function(fit_free) {
     cl_xy = "Video games → SDQ (H1a)",
     cl_yx = "SDQ → video games (H1b)"
   )
-  std <- lavaan::standardizedSolution(fit_free)
+  std <- std_solution(fit_free)
 
   cell <- function(label) {
     row <- std[std$label == label, ]

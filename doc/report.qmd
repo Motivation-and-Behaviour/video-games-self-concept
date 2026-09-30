@@ -202,6 +202,8 @@ n_sem <- model_fit$N[model_fit$Model == "RI-CLPM (primary)"]
   The random intercepts already absorb every stable difference between children, including those two and anything unmeasured, so the lagged paths are not confounded by them.
 - Both are estimated with robust maximum likelihood (RML) and FIML, on the `r format(n_sem, big.mark = ",")` children with data on at least one of the six modelled variables.
 - I ran everything for both types of models, so the choice of primary model can be changed without redoing the analysis.
+- Estimates are reported as β (standardised), but every p-value and significance star comes from the test of the unstandardised coefficient (b).
+  The two tests are not identical, and for a borderline path they can land on opposite sides of .05 (see the video game autoregression in @tbl-riclpm), so I've used the one for the actual model parameter throughout.
 
 ## Within-child and between-child {#sec-within-between}
 
@@ -257,7 +259,7 @@ The following asks the same question of the freely estimated model, showing each
 ```{r tbl-cross-lag-equality}
 knitr::kable(
   stationarity$cross_lags,
-  caption = "Cross-lagged paths estimated separately at each lag, with a Wald test of whether they differ, from the freely estimated RI-CLPM."
+  caption = "Cross-lagged paths estimated separately at each lag, with a Wald test of whether they differ, from the freely estimated RI-CLPM. β with 95% CI; p tests the unstandardised estimate."
 )
 ```
 
@@ -284,7 +286,7 @@ knitr::kable(
 )
 ```
 
-```{r fig-path-diagram, fig.cap="RI-CLPM with standardised estimates. Squares are observed variables, ellipses are latent: the random intercepts capture stable between-child differences, and the within-person components (VG, SDQ) capture each child's deviation from their own average. Blue arrows are the estimated structural paths; grey dashed arrows are fixed at 1. * p < .05, ** p < .01, *** p < .001.", fig.width=8, fig.height=6.5}
+```{r fig-path-diagram, fig.cap="RI-CLPM with standardised estimates. Squares are observed variables, ellipses are latent: the random intercepts capture stable between-child differences, and the within-person components (VG, SDQ) capture each child's deviation from their own average. Blue arrows are the estimated structural paths; grey dashed arrows are fixed at 1. Stars test the unstandardised estimates in @tbl-riclpm: * p < .05, ** p < .01, *** p < .001.", fig.width=8, fig.height=6.5}
 tar_read(path_diagram, store = store)
 ```
 
@@ -296,15 +298,15 @@ tar_read(path_diagram, store = store)
     The effect is small: roughly 0.13 extra hours per week per additional SDQ point.
   - H1a is not supported.
     Pooled across both lags, gaming does not predict later difficulties (β = .004, 95% CI [−.026, .034], p = .783).
-    That pooled estimate averages a marginal positive effect from 10/11 to 12/13 (β = .101, p = .054) and a null from 12/13 to 14/15 (β = −.007, p = .785), and those two just barelydiffer from each other (p = .049).
+    That pooled estimate averages a marginal positive effect from 10/11 to 12/13 (β = .101, p = .064) and a null from 12/13 to 14/15 (β = −.007, p = .785), and those two just barelydiffer from each other (p = .049).
     The narrow pooled confidence interval is partly a consequence of pooling, and should not be read as ruling out an effect at every age.
 - Another summary of H1a is "null on average, with a marginal early effect that has gone by 14/15" rather than "always null".
   It doesn't really matter though.
-  The first-lag effect is only p = .054 even when estimated freely, so the effect would not have been significant if estimated freely.
+  The first-lag effect is only p = .064 even when estimated freely, so the effect would not have been significant if estimated freely.
 - So the relationship looks one-directional, and in the opposite direction to what we probably would have guessed: difficulties appear to lead gaming rather than gaming leading difficulties.
 - The random intercepts correlate .21 (p < .001).
   Children who game more on average do report more difficulties on average, but that is a between-child difference, not evidence that gaming changes anything.
-- One thing I did find hard to explain: the within-person video game autoregression is −.26 at the first lag and +.28 at the second.
+- One thing I did find hard to explain: the within-person video game autoregression is −.26 at the first lag (not significant, p = .068) and +.28 at the second.
   A negative within-person autoregression is not impossible (a spike above your own average tends to be followed by a dip below it), but a sign flip that large is more likely instability from the three-wave model combined with gaming's growing variance.
   It does not affect the cross-lagged conclusions, which are stable across every specification tested, but we should keep it in mind.
 :::
@@ -356,7 +358,7 @@ knitr::kable(
 )
 ```
 
-```{r fig-clpm-path-diagram, fig.cap="Traditional CLPM with standardised estimates. All variables are observed (squares); with no random intercepts, the lagged paths run directly between them and mix between-child and within-child variation. Sex and socioeconomic position are included as covariates but their paths are omitted for legibility. * p < .05, ** p < .01, *** p < .001.", fig.width=8, fig.height=3.6}
+```{r fig-clpm-path-diagram, fig.cap="Traditional CLPM with standardised estimates. All variables are observed (squares); with no random intercepts, the lagged paths run directly between them and mix between-child and within-child variation. Sex and socioeconomic position are included as covariates but their paths are omitted for legibility. Stars test the unstandardised estimates in @tbl-clpm: * p < .05, ** p < .01, *** p < .001.", fig.width=8, fig.height=3.6}
 tar_read(clpm_path_diagram, store = store)
 ```
 
@@ -471,7 +473,7 @@ All are run in both model families.
 ```{r tbl-sensitivity}
 knitr::kable(
   tar_read(sensitivity_table, store = store),
-  caption = "Cross-lagged paths across the sensitivity analyses. β with 95% CI; \\* p < .05, \\*\\* p < .01, \\*\\*\\* p < .001. \"Outcome\" is SDQ total difficulties unless the row says otherwise."
+  caption = "Cross-lagged paths across the sensitivity analyses. β with 95% CI; stars test the unstandardised estimate: \\* p < .05, \\*\\* p < .01, \\*\\*\\* p < .001. \"Outcome\" is SDQ total difficulties unless the row says otherwise."
 )
 ```
 

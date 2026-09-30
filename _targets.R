@@ -103,6 +103,9 @@ list(
   tar_target(riclpm_table, make_model_table(riclpm_cross)),
   tar_target(variance_split, summarise_variance_split(riclpm_cross)),
   tar_target(clpm_table, make_model_table(clpm_cross)),
+  # Decision (2026-09-30): significance (p-values and stars) always comes from
+  # the test of the unstandardised estimate, including in β-only outputs such
+  # as the path diagrams; see std_solution().
   tar_target(path_diagram, plot_path_diagram(riclpm_cross)),
   tar_target(clpm_path_diagram, plot_path_diagram(clpm_cross)),
   # Step 4: moderation by parental warmth (H2).

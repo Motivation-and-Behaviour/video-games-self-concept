@@ -28,7 +28,7 @@ plot_path_diagram <- function(fit, waves = c(10, 12, 14)) {
   bands <- age_band_labels(waves)
   xpos <- 1 + (seq_along(waves) - 1) * 2.5
   mid <- mean(xpos)
-  std <- lavaan::standardizedSolution(fit)
+  std <- std_solution(fit)
   riclpm <- all(c("RI_x", "RI_y") %in% lavaan::lavNames(fit, "lv"))
 
   # Names of the nodes the lagged paths connect: the within-person components
@@ -298,6 +298,8 @@ node_shapes <- function(nodes) {
 }
 
 #' Standardised estimate for a lagged path, with significance stars
+#'
+#' Stars test the unstandardised estimate; see `std_solution()`.
 #'
 #' Looks for the constrained label first (no lag suffix), then the
 #' lag-specific one, so the same call works for either specification.
